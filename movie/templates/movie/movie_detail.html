@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ movie.title }}</title>
+</head>
+<body>
+
+<h1>{{ movie.title }}</h1>
+
+<p>{{ movie.description }}</p>
+
+{% if movie.image %}
+    <img src="{{ movie.image.url }}" width="250">
+{% endif %}
+
+{% if movie.url %}
+    <p><a href="{{ movie.url }}" target="_blank">More info</a></p>
+{% endif %}
+
+<hr>
+
+<h2>Add Review</h2>
+
+{% if user.is_authenticated %}
+    <form method="POST" action="/movies/{{ movie.id }}/reviews/new/">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit Review</button>
+    </form>
+{% else %}
+    <p>You must <a href="/login/">log in</a> to add a review.</p>
+{% endif %}
+
+<hr>
+
+<h2>Reviews</h2>
+
+{% for r in reviews %}
+    <div>
+        <p><strong>{{ r.name }}</strong> — {{ r.created_at }}</p>
+        <p>{{ r.content }}</p>
+        <p>Watch again: {{ r.watch_again }}</p>
+
+        {% if user.is_authenticated and r.user == user %}
+            <a href="/reviews/{{ r.id }}/edit/">Edit</a> |
+            <a href="/reviews/{{ r.id }}/delete/">Delete</a>
+        {% endif %}
+    </div>
+    <hr>
+{% empty %}
+    <p>No reviews yet.</p>
+{% endfor %}
+
+<p><a href="/movies/">Back to Movies</a></p>
+
+</body>
+
+<p style="color:red; font-weight:bold;">MOVIE_DETAIL TEMPLATE LOADED</p>
+
+</html>
