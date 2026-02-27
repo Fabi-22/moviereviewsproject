@@ -5,7 +5,6 @@ import os
 import json
 import csv
 import urllib.request
-import ssl
 
 class Command(BaseCommand):
     help = 'Load movies from movie_descriptions.json into the Movie model'
@@ -54,13 +53,7 @@ class Command(BaseCommand):
                     os.makedirs(dest_dir, exist_ok=True)
                     dest_path = os.path.join(dest_dir, local_filename)
                     try:
-                        # ignore SSL certificate errors when downloading
-                        ctx = ssl.create_default_context()
-                        ctx.check_hostname = False
-                        ctx.verify_mode = ssl.CERT_NONE
-                        with urllib.request.urlopen(poster, context=ctx) as response:
-                            with open(dest_path, 'wb') as out_file:
-                                out_file.write(response.read())
+                        urllib.request.urlretrieve(poster, dest_path)
                         image_value = os.path.join('movie/images', local_filename)
                     except Exception as e:
                         self.stderr.write(f"failed to download poster for {movie.get('title')}: {e}")
