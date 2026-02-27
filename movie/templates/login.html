@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h1 class="mb-4">Login</h1>
+
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<form method="POST" class="col-md-6">
+  {% csrf_token %}
+
+  <div class="mb-3">
+    <label class="form-label">Username</label>
+    <input class="form-control" type="text" name="username" required>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Password</label>
+    <input class="form-control" type="password" name="password" required>
+  </div>
+
+  <button class="btn btn-primary" type="submit">Login</button>
+</form>
+
+<div class="mt-3">
+  <a href="{% url 'home' %}">Back to Movies</a>
+  <br>
+  <a href="{% url 'signup' %}">Don't have an account? Sign up</a>
+</div>
+
+{% endblock %}

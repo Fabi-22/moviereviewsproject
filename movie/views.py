@@ -1,128 +1,105 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
-from .models import Movie, Review
-from .forms import ReviewForm
-
+from django.contrib.auth.models import User
+from .models import Movie
+import matplotlib
+import matplotlib.pyplot as plt
+import io
+import base64
 
 def home(request):
-    return render(request, "movie/home.html", {"name": "Fabiola Valencia Barrios"})
-
+    search = request.GET.get('searchMovie', '').strip()
+    qs = Movie.objects.all()
+    if search:
+        qs = qs.filter(title__icontains=search)
+    return render(request, 'home.html', {'movies': qs})
 
 def about(request):
-    return render(request, "movie/about.html")
+    return render(request, 'about.html')
 
-
-def movies(request):
-    searchTerm = request.GET.get("searchMovie")
-    if searchTerm:
-        movie_list = Movie.objects.filter(title__icontains=searchTerm)
-    else:
-        movie_list = Movie.objects.all()
-
-    review_form = ReviewForm() if request.user.is_authenticated else None
-
-    movies_with_reviews = []
-    for movie in movie_list:
-        movies_with_reviews.append({
-            "movie": movie,
-            "reviews": movie.reviews.order_by("-created_at"),
-        })
-
-    return render(
-        request,
-        "movie/movies.html",
-        {
-            "movies_data": movies_with_reviews,
-            "searchTerm": searchTerm or "",
-            "review_form": review_form,
-        },
-    )
-
-
-def movie_detail(request, movie_id):
-    movie = get_object_or_404(Movie, id=movie_id)
-    reviews = movie.reviews.order_by("-created_at")
-
-    form = ReviewForm() if request.user.is_authenticated else None
-
-    return render(
-        request,
-        "movie/movie_detail.html",
-        {"movie": movie, "reviews": reviews, "form": form},
-    )
-
+def signup(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        if username and password:
+            # create user if not exists
+            if User.objects.filter(username=username).exists():
+                error = 'Username already taken'
+                return render(request, 'signup.html', {'error': error})
+            user = User.objects.create_user(username=username, email=email, password=password)
+            login(request, user)
+            return redirect('home')
+    return render(request, 'signup.html')
 
 def login_view(request):
-    error = ""
-    if request.method == "POST":
-        email = request.POST.get("email", "").strip().lower()
-        password = request.POST.get("password", "")
-        user = authenticate(request, username=email, password=password)
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect("movies")
-        error = "Invalid email or password."
-    return render(request, "movie/login.html", {"error": error})
+            return redirect('home')
+        else:
+            return render(request, 'login.html', {'error': 'Invalid credentials'})
+    return render(request, 'login.html')
 
 
 def logout_view(request):
     logout(request)
-    return redirect("home")
+    return redirect('home')
 
 
-@login_required
-def review_create(request, movie_id):
-    movie = get_object_or_404(Movie, id=movie_id)
-    if request.method == "POST":
-        form = ReviewForm(request.POST)
-        if form.is_valid():
-            review = form.save(commit=False)
-            review.movie = movie
-            review.user = request.user
-            review.name = request.user.username
-            review.save()
-            return redirect("movie_detail", movie_id=movie.id)
-    else:
-        form = ReviewForm()
-    return render(
-        request,
-        "movie/review_form.html",
-        {"form": form, "movie": movie, "mode": "create"},
-    )
+def statistics_year_view(request):
+    matplotlib.use('Agg')
+    all_movies = Movie.objects.all()
+    movie_counts_by_year = {}
+    for movie in all_movies:
+        year = movie.year if movie.year else "None"
+        movie_counts_by_year[year] = movie_counts_by_year.get(year, 0) + 1
+    years = list(movie_counts_by_year.keys())
+    counts = [movie_counts_by_year[y] for y in years]
+    bar_positions = range(len(years))
+    plt.bar(bar_positions, counts, align='center')
+    plt.title('Movies per year')
+    plt.xlabel('Year')
+    plt.ylabel('Number of movies')
+    plt.xticks(bar_positions, years, rotation=90)
+    plt.subplots_adjust(bottom=0.3)
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    plt.close()
+    graphic = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    buffer.close()
+    return render(request, 'statistics_year.html', {'graphic': graphic})
 
+def _first_genre(raw_genre):
+    if not raw_genre:
+        return "None"
+    g = raw_genre.split('|')[0].split(',')[0].strip()
+    return g if g else "None"
 
-@login_required
-def review_edit(request, review_id):
-    review = get_object_or_404(Review, id=review_id)
-    if review.user != request.user:
-        return HttpResponseForbidden()
-    if request.method == "POST":
-        form = ReviewForm(request.POST, instance=review)
-        if form.is_valid():
-            form.save()
-            return redirect("movie_detail", movie_id=review.movie.id)
-    else:
-        form = ReviewForm(instance=review)
-    return render(
-        request,
-        "movie/review_form.html",
-        {"form": form, "movie": review.movie, "mode": "edit"},
-    )
-
-
-@login_required
-def review_delete(request, review_id):
-    review = get_object_or_404(Review, id=review_id)
-    if review.user != request.user:
-        return HttpResponseForbidden()
-    if request.method == "POST":
-        movie_id = review.movie.id
-        review.delete()
-        return redirect("movie_detail", movie_id=movie_id)
-    return render(
-        request,
-        "movie/review_delete.html",
-        {"review": review},
-    )
+def statistics_genre_view(request):
+    matplotlib.use('Agg')
+    all_movies = Movie.objects.all()
+    movie_counts_by_genre = {}
+    for movie in all_movies:
+        genre = _first_genre(movie.genre)
+        movie_counts_by_genre[genre] = movie_counts_by_genre.get(genre, 0) + 1
+    genres = list(movie_counts_by_genre.keys())
+    counts = [movie_counts_by_genre[g] for g in genres]
+    bar_positions = range(len(genres))
+    plt.bar(bar_positions, counts, align='center')
+    plt.title('Movies per genre')
+    plt.xlabel('Genre')
+    plt.ylabel('Number of movies')
+    plt.xticks(bar_positions, genres, rotation=90)
+    plt.subplots_adjust(bottom=0.35)
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    plt.close()
+    graphic = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    buffer.close()
+    return render(request, 'statistics_genre.html', {'graphic': graphic})

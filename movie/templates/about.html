@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h1>About the Project</h1>
+
+<p>
+  Movie Reviews is a web application developed using the Django framework.
+  The purpose of this application is to allow users to explore and search
+  for movies in a simple and intuitive way.
+</p>
+
+<p>
+  The application provides a list of movies stored in a database. Each movie
+  includes essential information such as the title, a description, an image,
+  and a URL with additional details about the movie.
+</p>
+
+<p>
+  Users can search for movies by name, and the application will display
+  all movies that match the search criteria. This functionality helps users
+  easily find specific movies of interest.
+</p>
+
+<p>
+  After logging in, users can publish reviews including the publication date,
+  the content, and their name. Each user can edit and delete only their own reviews,
+  respecting other users' contributions.
+</p>
+
+{% endblock %}

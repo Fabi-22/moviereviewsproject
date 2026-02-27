@@ -1,14 +1,16 @@
-from django.urls import path
-from . import views
+from django.contrib import admin
+from django.urls import path, include
+from movie import views as movie_views
+from django.conf.urls.static import static
+from django.conf import settings
 
 urlpatterns = [
-    path("", views.home, name="home"),
-    path("about/", views.about, name="about"),
-    path("movies/", views.movies, name="movies"),
-    path("movies/<int:movie_id>/", views.movie_detail, name="movie_detail"),
-    path("login/", views.login_view, name="login"),
-    path("logout/", views.logout_view, name="logout"),
-    path("movies/<int:movie_id>/reviews/new/", views.review_create, name="review_create"),
-    path("reviews/<int:review_id>/edit/", views.review_edit, name="review_edit"),
-    path("reviews/<int:review_id>/delete/", views.review_delete, name="review_delete"),
-]
+    path('admin/', admin.site.urls),
+    path('', movie_views.home, name='home'),
+    path('about/', movie_views.about, name='about'),
+    path('news/', include('news.urls')),
+    path('signup/', movie_views.signup, name='signup'),
+    path('statistics/year/', movie_views.statistics_year_view, name='statistics_year'),
+    path('statistics/genre/', movie_views.statistics_genre_view, name='statistics_genre'),
+    path('accounts/', include('django.contrib.auth.urls')),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

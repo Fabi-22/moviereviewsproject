@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h1>{{ movie.title }}</h1>
+
+<p>{{ movie.description }}</p>
+
+{% if movie.image %}
+  <img src="{{ movie.image.url }}" width="250" class="img-fluid mb-3">
+{% endif %}
+
+{% if movie.url %}
+  <p><a href="{{ movie.url }}" target="_blank">More info</a></p>
+{% endif %}
+
+<hr>
+
+<h2>Add Review</h2>
+
+{% if user.is_authenticated %}
+  <form method="POST" action="/movies/{{ movie.id }}/reviews/new/" class="col-md-6">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-success">Submit Review</button>
+  </form>
+{% else %}
+  <p>You must <a href="/login/">log in</a> to add a review.</p>
+{% endif %}
+
+<hr>
+
+<h2>Reviews</h2>
+
+{% for r in reviews %}
+  <div class="border rounded p-3 mb-2">
+    <p class="mb-1"><strong>{{ r.name }}</strong> — {{ r.created_at }}</p>
+    <p class="mb-1">{{ r.content }}</p>
+    <p class="mb-0"><strong>Watch again:</strong> {{ r.watch_again }}</p>
+
+    {% if user.is_authenticated and r.user == user %}
+      <div class="mt-2">
+        <a class="btn btn-sm btn-warning" href="/reviews/{{ r.id }}/edit/">Edit</a>
+        <a class="btn btn-sm btn-danger" href="/reviews/{{ r.id }}/delete/">Delete</a>
+      </div>
+    {% endif %}
+  </div>
+{% empty %}
+  <p>No reviews yet.</p>
+{% endfor %}
+
+<a class="btn btn-secondary mt-3" href="/movies/">Back to Movies</a>
+
+{% endblock %}

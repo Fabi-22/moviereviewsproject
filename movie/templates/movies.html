@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h1 class="mb-3">Movies</h1>
+
+<form method="GET" class="row g-2 mb-4">
+  <div class="col-md-6">
+    <input class="form-control" type="text" name="searchMovie" placeholder="Search by title" value="{{ searchTerm }}">
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-dark w-100" type="submit">Search</button>
+  </div>
+</form>
+
+{% for item in movies_data %}
+  <div class="card mb-4">
+    <div class="row g-0">
+      <div class="col-md-3">
+        {% if item.movie.image %}
+          <img src="{{ item.movie.image.url }}" class="img-fluid rounded-start" style="height:100%; object-fit:cover;">
+        {% endif %}
+      </div>
+
+      <div class="col-md-9">
+        <div class="card-body">
+          <h3 class="card-title">{{ item.movie.title }}</h3>
+          <p class="card-text">{{ item.movie.description }}</p>
+
+          {% if item.movie.url %}
+            <p class="card-text">
+              <a href="{{ item.movie.url }}" target="_blank">More info</a>
+            </p>
+          {% endif %}
+
+          {% if user.is_authenticated %}
+            <hr>
+            <h5>Add Review</h5>
+            <form method="POST" action="/movies/{{ item.movie.id }}/reviews/new/">
+              {% csrf_token %}
+              {{ review_form.as_p }}
+              <button class="btn btn-success" type="submit">Submit Review</button>
+            </form>
+          {% endif %}
+
+          <hr>
+          <h5>Reviews</h5>
+
+          {% for r in item.reviews %}
+            <div class="border rounded p-3 mb-2">
+              <p class="mb-1"><strong>{{ r.name }}</strong> — {{ r.created_at }}</p>
+              <p class="mb-1">{{ r.content }}</p>
+              <p class="mb-0"><strong>Watch again:</strong> {{ r.watch_again }}</p>
+
+              {% if user.is_authenticated and r.user == user %}
+                <div class="mt-2">
+                  <a class="btn btn-sm btn-warning" href="/reviews/{{ r.id }}/edit/">Edit</a>
+                  <a class="btn btn-sm btn-danger" href="/reviews/{{ r.id }}/delete/">Delete</a>
+                </div>
+              {% endif %}
+            </div>
+          {% empty %}
+            <p>No reviews yet.</p>
+          {% endfor %}
+
+        </div>
+      </div>
+    </div>
+  </div>
+{% empty %}
+  <p>No movies found.</p>
+{% endfor %}
+
+{% endblock %}
